@@ -1,0 +1,5 @@
+*.sw*
+lib/
+dist/
+node_modules/
+.nyc_output/

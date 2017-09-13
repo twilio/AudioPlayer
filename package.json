@@ -1,0 +1,37 @@
+{
+  "name": "AudioPlayer",
+  "version": "1.0.0-dev",
+  "description": "An HTMLAudioElement-like implementation that uses AudioContext to circumvent browser limitations.",
+  "main": "./lib/AudioPlayer.js",
+  "scripts": {
+    "build": "npm run clean && tsc",
+    "clean": "rimraf ./lib",
+    "lint": "tslint -c tslint.json --project tslint.json -t stylish",
+    "lint-message": "echo Linting...",
+    "install-typings": "node ./node_modules/typings/dist/bin.js install",
+    "test": "mocha -r ts-node/register test/*.ts",
+    "test-message": "Testing..."
+  },
+  "pre-commit": [
+    "lint-message",
+    "lint",
+    "test-message",
+    "test"
+  ],
+  "author": "Ryan Rowland <rrowland@twilio.com>",
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "@types/mocha": "^2.2.41",
+    "@types/node": "^7.0.14",
+    "@types/sinon": "^2.3.3",
+    "browserify": "^14.4.0",
+    "mocha": "^3.4.1",
+    "pre-commit": "^1.2.2",
+    "rimraf": "^2.6.1",
+    "sinon": "^3.2.1",
+    "ts-node": "^3.1.0",
+    "tslint": "^5.1.0",
+    "typescript": "^2.4.0"
+  },
+  "dependencies": {}
+}
