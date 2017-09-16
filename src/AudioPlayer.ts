@@ -1,3 +1,4 @@
+import Deferred from './Deferred';
 import EventTarget from './EventTarget';
 
 import ChromeAudioContext, { ChromeHTMLAudioElement, MediaStreamAudioDestinationNode } from './ChromeAudioContext';
@@ -53,7 +54,7 @@ export default class AudioPlayer extends EventTarget {
    *   .pause() is called or .src is set, all pending play Promises are
    *   immediately rejected.
    */
-  private _pendingDeferreds: Array<{ resolve: Function, reject: Function }> = [];
+  private _pendingPlayDeferreds: Array<Deferred<AudioBuffer>> = [];
 
   /**
    * The Factory to use to construct an XMLHttpRequest.
@@ -61,7 +62,7 @@ export default class AudioPlayer extends EventTarget {
   private _XMLHttpRequest: any;
 
   /**
-   * The current destination for audio playback. This is set to context.destionation
+   * The current destination for audio playback. This is set to context.destination
    *   when default, or a specific MediaStreamAudioDestinationNode when setSinkId
    *   is set.
    */
@@ -78,9 +79,13 @@ export default class AudioPlayer extends EventTarget {
     // If a sound is already looping, it should continue playing
     //   the current playthrough and then stop.
     if (!shouldLoop && this.loop && !this.paused) {
-      this._audioNode.addEventListener('ended', () => {
-        this.pause();
-      });
+      const self = this;
+      function pauseAfterPlaythrough() {
+        self._audioNode.removeEventListener('ended', pauseAfterPlaythrough);
+        self.pause();
+      }
+
+      this._audioNode.addEventListener('ended', pauseAfterPlaythrough);
     }
 
     this._loop = shouldLoop;
@@ -104,12 +109,15 @@ export default class AudioPlayer extends EventTarget {
     }
 
     this._src = src;
-    this._bufferPromise = src
-      ? bufferSound(this._audioContext, this._XMLHttpRequest, src).then(buffer => {
-          this.dispatchEvent('canplaythrough', buffer);
-          return buffer;
-        })
-      : new Promise((resolve, reject) => this._pendingDeferreds.push({ resolve, reject }));
+    this._bufferPromise = new Promise(async (resolve, reject) => {
+      if (!src) {
+        return this._createPlayDeferred().promise;
+      }
+
+      const buffer = await bufferSound(this._audioContext, this._XMLHttpRequest, src);
+      this.dispatchEvent('canplaythrough', buffer);
+      resolve(buffer);
+    });
   }
 
   /**
@@ -148,13 +156,12 @@ export default class AudioPlayer extends EventTarget {
 
     this._audioContext = audioContext as ChromeAudioContext;
     this._audioElement = new (options.AudioFactory || Audio)();
-    this._bufferPromise = new Promise((resolve, reject) => this._pendingDeferreds.push({ resolve, reject }));
+    this._bufferPromise = this._createPlayDeferred().promise;
     this._destination = this._audioContext.destination;
     this._XMLHttpRequest = options.XMLHttpRequestFactory || XMLHttpRequest;
 
     this.addEventListener('canplaythrough', () => {
-      const deferreds = this._pendingDeferreds;
-      deferreds.splice(0, deferreds.length).forEach(({ resolve }) => resolve());
+      this._resolvePlayDeferreds();
     });
 
     if (typeof srcOrOptions === 'string') {
@@ -175,8 +182,7 @@ export default class AudioPlayer extends EventTarget {
     this._audioNode.disconnect(this._audioContext.destination);
     this._audioNode = null;
 
-    const deferreds = this._pendingDeferreds;
-    deferreds.splice(0, deferreds.length).forEach(({ resolve }) => resolve());
+    this._rejectPlayDeferreds(new Error('The play() request was interrupted by a call to pause().'));
   }
 
   /**
@@ -184,38 +190,42 @@ export default class AudioPlayer extends EventTarget {
    *   the source URL is not set yet, this Promise will remain pending until a source
    *   URL is set.
    */
-  play(): Promise<void> {
-    if (!this.paused) { return Promise.resolve(); }
+  async play(): Promise<void> {
+    if (!this.paused) {
+      await this._bufferPromise;
+      if (!this.paused) { return; }
+      throw new Error('The play() request was interrupted by a call to pause().');
+    }
 
     this._audioNode = this._audioContext.createBufferSource();
     this._audioNode.loop = this.loop;
 
-    return this._bufferPromise.then((buffer: AudioBuffer) => {
-      if (this.paused) {
-        throw new Error('The play() request was interrupted by a call to pause().');
-      }
+    const buffer: AudioBuffer = await this._bufferPromise;
 
-      this._audioNode.buffer = buffer;
-      this._audioNode.connect(this._destination);
-      this._audioNode.start();
+    if (this.paused) {
+      throw new Error('The play() request was interrupted by a call to pause().');
+    }
 
-      if (this._audioElement.srcObject) {
-        return this._audioElement.play();
-      }
-    });
+    this._audioNode.buffer = buffer;
+    this._audioNode.connect(this._destination);
+    this._audioNode.start();
+
+    if (this._audioElement.srcObject) {
+      return this._audioElement.play();
+    }
   }
 
   /**
    * Change which device the sound should play through.
    * @param sinkId - The sink of the device to play sound through.
    */
-  setSinkId(sinkId: string): Promise<void> {
+  async setSinkId(sinkId: string): Promise<void> {
     if (typeof this._audioElement.setSinkId !== 'function') {
       throw new Error('This browser does not support setSinkId.');
     }
 
     if (sinkId === this.sinkId) {
-      return Promise.resolve();
+      return;
     }
 
     if (sinkId === 'default') {
@@ -227,20 +237,47 @@ export default class AudioPlayer extends EventTarget {
       this._destination = this._audioContext.destination;
       this._sinkId = sinkId;
 
-      return Promise.resolve();
+      return;
     }
 
-    return this._audioElement.setSinkId(sinkId).then(() => {
-      if (this._audioElement.srcObject) { return; }
+    await this._audioElement.setSinkId(sinkId);
+    if (this._audioElement.srcObject) { return; }
 
-      this._destination = this._audioContext.createMediaStreamDestination();
-      this._audioElement.srcObject = this._destination.stream;
-      this._sinkId = sinkId;
+    this._destination = this._audioContext.createMediaStreamDestination();
+    this._audioElement.srcObject = this._destination.stream;
+    this._sinkId = sinkId;
 
-      if (!this.paused) {
-        this._audioNode.connect(this._destination);
-      }
-    });
+    if (!this.paused) {
+      this._audioNode.connect(this._destination);
+    }
+  }
+
+  /**
+   * Create a Deferred for a Promise that will be resolved when .src is set or rejected
+   *   when .pause is called.
+   */
+  private _createPlayDeferred(): Deferred<AudioBuffer> {
+    const deferred = new Deferred();
+    this._pendingPlayDeferreds.push(deferred as Deferred<AudioBuffer>);
+    return deferred as Deferred<AudioBuffer>;
+  }
+
+  /**
+   * Reject all deferreds for the Play promise.
+   * @param reason
+   */
+  private _rejectPlayDeferreds(reason?: any): void {
+    const deferreds = this._pendingPlayDeferreds;
+    deferreds.splice(0, deferreds.length).forEach(({ reject }) => reject(reason));
+  }
+
+  /**
+   * Resolve all deferreds for the Play promise.
+   * @param result
+   */
+  private _resolvePlayDeferreds(result?: any): void {
+    const deferreds = this._pendingPlayDeferreds;
+    deferreds.splice(0, deferreds.length).forEach(({ resolve }) => resolve(result));
   }
 }
 
@@ -253,15 +290,15 @@ export default class AudioPlayer extends EventTarget {
  * @returns A Promise containing the decoded AudioBuffer.
  */
 // tslint:disable-next-line:variable-name
-function bufferSound(context: any, RequestFactory: any, src: string): Promise<AudioBuffer> {
+async function bufferSound(context: any, RequestFactory: any, src: string): Promise<AudioBuffer> {
   const request: XMLHttpRequest = new RequestFactory();
   request.open('GET', src, true);
   request.responseType = 'arraybuffer';
 
-  return new Promise(resolve => {
+  const event: any = await new Promise(resolve => {
     request.addEventListener('load', resolve);
     request.send();
-  }).then((event: any) => {
-    return context.decodeAudioData(event.target.response);
   });
+
+  return context.decodeAudioData(event.target.response);
 }

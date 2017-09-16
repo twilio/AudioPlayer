@@ -33,12 +33,14 @@ describe('AudioPlayer', function() {
         assert.equal(audioPlayer.paused, false);
       });
 
-      it('should return a pending Promise until a src is set', () => {
+      it('should return a pending Promise for each play call until a src is set', () => {
         let isNextTick = false;
 
-        const promise = audioPlayer.play().then(() => {
-          assert(isNextTick);
-        });
+        const promise = Promise.all([
+          audioPlayer.play().then(() => { assert(isNextTick); }),
+          audioPlayer.play().then(() => { assert(isNextTick); }),
+          audioPlayer.play().then(() => { assert(isNextTick); }),
+        ]);
 
         setTimeout(() => {
           isNextTick = true;
@@ -46,13 +48,6 @@ describe('AudioPlayer', function() {
         });
 
         return promise;
-      });
-
-      context('when already playing', () => {
-        it('should return a resolved Promise', () => {
-          audioPlayer.play();
-          return audioPlayer.play();
-        });
       });
     });
 
@@ -206,8 +201,8 @@ describe('AudioPlayer', function() {
         const error = new Error('Expected a reject, but got a resolve');
         Promise.all([
           audioPlayer.play().then(() => { throw error; }, () => { }),
-          audioPlayer.play(),
-          audioPlayer.play(),
+          audioPlayer.play().then(() => { throw error; }, () => { }),
+          audioPlayer.play().then(() => { throw error; }, () => { }),
         ]).then(() => done(), done);
 
         audioPlayer.src = 'bar';
@@ -235,9 +230,25 @@ describe('AudioPlayer', function() {
           audioPlayer.pause = sinon.spy(audioPlayer.pause);
           audioPlayer.loop = true;
 
-          audioPlayer.play().then(() => {
+          return audioPlayer.play().then(() => {
             audioPlayer.loop = false;
             sinon.assert.notCalled(audioPlayer.pause as SinonSpy);
+            audioContext.audioNodes[0].dispatchEvent('ended');
+            sinon.assert.calledOnce(audioPlayer.pause as SinonSpy);
+          });
+        });
+
+        it('should only pause after the initial ended event', () => {
+          audioPlayer.pause = sinon.spy(audioPlayer.pause);
+          audioPlayer.loop = true;
+
+          return audioPlayer.play().then(() => {
+            audioPlayer.loop = false;
+            sinon.assert.notCalled(audioPlayer.pause as SinonSpy);
+            audioContext.audioNodes[0].dispatchEvent('ended');
+            sinon.assert.calledOnce(audioPlayer.pause as SinonSpy);
+            audioContext.audioNodes[0].dispatchEvent('ended');
+            sinon.assert.calledOnce(audioPlayer.pause as SinonSpy);
             audioContext.audioNodes[0].dispatchEvent('ended');
             sinon.assert.calledOnce(audioPlayer.pause as SinonSpy);
           });
@@ -259,15 +270,13 @@ describe('AudioPlayer', function() {
     });
 
     context('when setSinkId is not supported', () => {
-      it('should return a rejected Promise', () => {
+      it('should return a rejected Promise', (done) => {
         audioPlayer = new AudioPlayer(audioContext, {
           AudioFactory: LegacyAudioFactory,
           XMLHttpRequestFactory,
         });
 
-        assert.throws(() => {
-          audioPlayer.setSinkId('foo');
-        });
+        audioPlayer.setSinkId('foo').catch(() => done());
       });
     });
 
