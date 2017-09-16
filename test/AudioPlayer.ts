@@ -306,12 +306,14 @@ describe('AudioPlayer', function() {
           });
         });
 
-        it('should connect the audio node to the new destination if already playing', () => {
+        it('should connect the gain node to the new destination if already playing', () => {
           return audioPlayer.play().then(() => {
             sinon.assert.calledOnce(audioContext.audioNodes[0].connect as SinonSpy);
+            sinon.assert.calledOnce(audioContext.gainNodes[0].connect as SinonSpy);
             return audioPlayer.setSinkId('foo');
           }).then(() => {
-            sinon.assert.calledTwice(audioContext.audioNodes[0].connect as SinonSpy);
+            sinon.assert.calledOnce(audioContext.audioNodes[0].connect as SinonSpy);
+            sinon.assert.calledTwice(audioContext.gainNodes[0].connect as SinonSpy);
           });
         });
       });
@@ -360,6 +362,27 @@ describe('AudioPlayer', function() {
       });
     });
   });
+
+  describe('.muted', () => {
+    beforeEach(() => {
+      AudioFactory.clear();
+
+      audioPlayer = new AudioPlayer(audioContext, {
+        AudioFactory,
+        XMLHttpRequestFactory,
+      });
+    });
+
+    it('should set gain to 1 when not muted', () => {
+      audioPlayer.muted = false;
+      assert.equal(audioContext.gainNodes[0].gain.value, 1);
+    });
+
+    it('should set gain to 0 when muted', () => {
+      audioPlayer.muted = true;
+      assert.equal(audioContext.gainNodes[0].gain.value, 0);
+    });
+  });
 });
 
 class MockAudioNode extends EventTarget {
@@ -380,8 +403,23 @@ class MockAudioNode extends EventTarget {
   stop() { }
 }
 
+class MockGainNode {
+  gain: any = {
+    value: 1,
+  };
+
+  constructor() {
+    this.connect = sinon.spy(this.connect);
+  }
+
+  connect() { }
+  disconnect() { }
+}
+
 class MockContext {
   audioNodes: MockAudioNode[] = [];
+  gainNodes: MockGainNode[] = [];
+
   destination: any = {
     stream: 'foo',
   };
@@ -400,6 +438,12 @@ class MockContext {
   createBufferSource() {
     const node = new MockAudioNode();
     this.audioNodes.push(node);
+    return node;
+  }
+
+  createGain() {
+    const node = new MockGainNode();
+    this.gainNodes.push(node);
     return node;
   }
 

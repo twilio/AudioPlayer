@@ -50,6 +50,11 @@ export default class AudioPlayer extends EventTarget {
   private _bufferPromise: Promise<AudioBuffer>;
 
   /**
+   * The GainNode used to control whether the sound is muted.
+   */
+  private _gainNode: GainNode;
+
+  /**
    * An Array of deferred-like objects for each pending `play` Promise. When
    *   .pause() is called or .src is set, all pending play Promises are
    *   immediately rejected.
@@ -92,6 +97,14 @@ export default class AudioPlayer extends EventTarget {
   }
 
   /**
+   * Whether the audio element is muted.
+   */
+  get muted(): boolean { return this._gainNode.gain.value === 0; }
+  set muted(shouldBeMuted: boolean) {
+    this._gainNode.gain.value = shouldBeMuted ? 0 : 1;
+  }
+
+  /**
    * Whether the sound is paused. this._audioNode only exists when sound is playing;
    *   otherwise AudioPlayer is considered paused.
    */
@@ -115,7 +128,7 @@ export default class AudioPlayer extends EventTarget {
       }
 
       const buffer = await bufferSound(this._audioContext, this._XMLHttpRequest, src);
-      this.dispatchEvent('canplaythrough', buffer);
+      this.dispatchEvent('canplaythrough');
       resolve(buffer);
     });
   }
@@ -147,7 +160,7 @@ export default class AudioPlayer extends EventTarget {
    */
   constructor(audioContext: any,
               srcOrOptions: string|IAudioPlayerOptions = { } as IAudioPlayerOptions,
-              options?: IAudioPlayerOptions) {
+              options: IAudioPlayerOptions = { } as IAudioPlayerOptions) {
     super();
 
     if (typeof srcOrOptions !== 'string') {
@@ -158,6 +171,8 @@ export default class AudioPlayer extends EventTarget {
     this._audioElement = new (options.AudioFactory || Audio)();
     this._bufferPromise = this._createPlayDeferred().promise;
     this._destination = this._audioContext.destination;
+    this._gainNode = this._audioContext.createGain();
+    this._gainNode.connect(this._destination);
     this._XMLHttpRequest = options.XMLHttpRequestFactory || XMLHttpRequest;
 
     this.addEventListener('canplaythrough', () => {
@@ -179,7 +194,7 @@ export default class AudioPlayer extends EventTarget {
     this._audioElement.pause();
 
     this._audioNode.stop();
-    this._audioNode.disconnect(this._audioContext.destination);
+    this._audioNode.disconnect(this._gainNode);
     this._audioNode = null;
 
     this._rejectPlayDeferreds(new Error('The play() request was interrupted by a call to pause().'));
@@ -200,6 +215,11 @@ export default class AudioPlayer extends EventTarget {
     this._audioNode = this._audioContext.createBufferSource();
     this._audioNode.loop = this.loop;
 
+    this._audioNode.addEventListener('ended', () => {
+      if (this._audioNode && this._audioNode.loop) { return; }
+      this.dispatchEvent('ended');
+    });
+
     const buffer: AudioBuffer = await this._bufferPromise;
 
     if (this.paused) {
@@ -207,7 +227,7 @@ export default class AudioPlayer extends EventTarget {
     }
 
     this._audioNode.buffer = buffer;
-    this._audioNode.connect(this._destination);
+    this._audioNode.connect(this._gainNode);
     this._audioNode.start();
 
     if (this._audioElement.srcObject) {
@@ -230,11 +250,12 @@ export default class AudioPlayer extends EventTarget {
 
     if (sinkId === 'default') {
       if (!this.paused) {
-        this._audioNode.disconnect(this._destination);
+        this._gainNode.disconnect(this._destination);
       }
 
       this._audioElement.srcObject = null;
       this._destination = this._audioContext.destination;
+      this._gainNode.connect(this._destination);
       this._sinkId = sinkId;
 
       return;
@@ -243,12 +264,13 @@ export default class AudioPlayer extends EventTarget {
     await this._audioElement.setSinkId(sinkId);
     if (this._audioElement.srcObject) { return; }
 
+    this._gainNode.disconnect(this._audioContext.destination);
     this._destination = this._audioContext.createMediaStreamDestination();
     this._audioElement.srcObject = this._destination.stream;
     this._sinkId = sinkId;
 
     if (!this.paused) {
-      this._audioNode.connect(this._destination);
+      this._gainNode.connect(this._destination);
     }
   }
 
@@ -300,5 +322,12 @@ async function bufferSound(context: any, RequestFactory: any, src: string): Prom
     request.send();
   });
 
-  return context.decodeAudioData(event.target.response);
+  // Safari uses a callback here instead of a Promise.
+  try {
+    return context.decodeAudioData(event.target.response);
+  } catch (e) {
+    return new Promise(resolve => {
+      context.decodeAudioData(event.target.response, resolve);
+    }) as Promise<AudioBuffer>;
+  }
 }

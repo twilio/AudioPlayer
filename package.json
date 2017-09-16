@@ -10,6 +10,7 @@
     "lint": "tslint -c tslint.json --project tslint.json -t stylish",
     "lint-message": "echo Linting...",
     "install-typings": "node ./node_modules/typings/dist/bin.js install",
+    "postinstall": "npm run build",
     "test": "mocha -r ts-node/register test/*.ts",
     "test-message": "echo Testing..."
   },
