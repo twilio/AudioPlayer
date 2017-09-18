@@ -98,6 +98,10 @@ export default class AudioPlayer extends EventTarget {
      */
     constructor(audioContext: any, src: string, options?: IAudioPlayerOptions);
     /**
+     * Stop any ongoing playback and reload the source file.
+     */
+    load(): void;
+    /**
      * Pause the audio coming from this AudioPlayer. This will reject any pending
      *   play Promises.
      */
@@ -118,6 +122,11 @@ export default class AudioPlayer extends EventTarget {
      *   when .pause is called.
      */
     private _createPlayDeferred();
+    /**
+     * Stop current playback and load a sound file.
+     * @param src - The source URL of the file to load
+     */
+    private _load(src);
     /**
      * Reject all deferreds for the Play promise.
      * @param reason

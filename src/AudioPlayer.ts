@@ -116,21 +116,7 @@ export default class AudioPlayer extends EventTarget {
   private _src: string = '';
   get src(): string { return this._src; }
   set src(src: string) {
-    // Pause any currently playing audio
-    if (this._src) {
-      this.pause();
-    }
-
-    this._src = src;
-    this._bufferPromise = new Promise(async (resolve, reject) => {
-      if (!src) {
-        return this._createPlayDeferred().promise;
-      }
-
-      const buffer = await bufferSound(this._audioContext, this._XMLHttpRequest, src);
-      this.dispatchEvent('canplaythrough');
-      resolve(buffer);
-    });
+    this._load(src);
   }
 
   /**
@@ -182,6 +168,13 @@ export default class AudioPlayer extends EventTarget {
     if (typeof srcOrOptions === 'string') {
       this.src = srcOrOptions;
     }
+  }
+
+  /**
+   * Stop any ongoing playback and reload the source file.
+   */
+  load(): void {
+    this._load(this._src);
   }
 
   /**
@@ -282,6 +275,27 @@ export default class AudioPlayer extends EventTarget {
     const deferred = new Deferred();
     this._pendingPlayDeferreds.push(deferred as Deferred<AudioBuffer>);
     return deferred as Deferred<AudioBuffer>;
+  }
+
+  /**
+   * Stop current playback and load a sound file.
+   * @param src - The source URL of the file to load
+   */
+  private _load(src: string): void {
+    if (this._src && this._src !== src) {
+      this.pause();
+    }
+
+    this._src = src;
+    this._bufferPromise = new Promise(async (resolve, reject) => {
+      if (!src) {
+        return this._createPlayDeferred().promise;
+      }
+
+      const buffer = await bufferSound(this._audioContext, this._XMLHttpRequest, src);
+      this.dispatchEvent('canplaythrough');
+      resolve(buffer);
+    });
   }
 
   /**

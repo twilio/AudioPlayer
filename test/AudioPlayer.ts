@@ -70,6 +70,28 @@ describe('AudioPlayer', function() {
       });
     });
 
+    describe('.load()', () => {
+      it('should not affect .src', () => {
+        audioPlayer.src = 'test';
+        audioPlayer.load();
+        assert.equal(audioPlayer.src, 'test');
+      });
+
+      it('should not resolve pending play Promises', () => {
+        const error = new Error('Promises resolved unexpectedly');
+        const promise = Promise.race([
+          audioPlayer.play().then(() => { throw error; }),
+          audioPlayer.play().then(() => { throw error; }),
+          audioPlayer.play().then(() => { throw error; }),
+          new Promise(resolve => { setTimeout(resolve); }),
+        ]);
+
+        audioPlayer.load();
+
+        return promise;
+      });
+    });
+
     describe('setting .src', () => {
       it('should update .src synchronously', () => {
         audioPlayer.src = 'test';
@@ -187,6 +209,36 @@ describe('AudioPlayer', function() {
         it('should silently do nothing', () => {
           audioPlayer.pause();
           assert.equal(audioPlayer.pause(), undefined);
+        });
+      });
+    });
+
+    describe('.load()', () => {
+      it('should not change .src', () => {
+        audioPlayer.src = 'bar';
+        audioPlayer.load();
+        assert.equal(audioPlayer.src, 'bar');
+      });
+
+      it('should not reject any pending play Promises', () => {
+        const error = new Error('Promises rejected unexpectedly');
+        const promise = Promise.race([
+          audioPlayer.play().catch(() => { throw error; }),
+          audioPlayer.play().catch(() => { throw error; }),
+          audioPlayer.play().catch(() => { throw error; }),
+          new Promise(resolve => { setTimeout(resolve); }),
+        ]);
+
+        audioPlayer.load();
+
+        return promise;
+      });
+
+      it('should call .pause() if the sound is currently playing', () => {
+        audioPlayer.pause = sinon.spy(audioPlayer.pause);
+        audioPlayer.play().then(() => {
+          audioPlayer.load();
+          sinon.assert.calledOnce(audioPlayer.pause as SinonSpy);
         });
       });
     });

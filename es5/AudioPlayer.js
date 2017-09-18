@@ -99,12 +99,21 @@ var AudioPlayer = function (_EventTarget_1$defaul) {
     }
 
     _createClass(AudioPlayer, [{
-        key: "pause",
+        key: "load",
 
+        /**
+         * Stop any ongoing playback and reload the source file.
+         */
+        value: function load() {
+            this._load(this._src);
+        }
         /**
          * Pause the audio coming from this AudioPlayer. This will reject any pending
          *   play Promises.
          */
+
+    }, {
+        key: "pause",
         value: function pause() {
             if (this.paused) {
                 return;
@@ -278,6 +287,53 @@ var AudioPlayer = function (_EventTarget_1$defaul) {
             return deferred;
         }
         /**
+         * Stop current playback and load a sound file.
+         * @param src - The source URL of the file to load
+         */
+
+    }, {
+        key: "_load",
+        value: function _load(src) {
+            var _this3 = this;
+
+            if (this._src && this._src !== src) {
+                this.pause();
+            }
+            this._src = src;
+            this._bufferPromise = new Promise(function (resolve, reject) {
+                return __awaiter(_this3, void 0, void 0, /*#__PURE__*/regeneratorRuntime.mark(function _callee3() {
+                    var buffer;
+                    return regeneratorRuntime.wrap(function _callee3$(_context3) {
+                        while (1) {
+                            switch (_context3.prev = _context3.next) {
+                                case 0:
+                                    if (src) {
+                                        _context3.next = 2;
+                                        break;
+                                    }
+
+                                    return _context3.abrupt("return", this._createPlayDeferred().promise);
+
+                                case 2:
+                                    _context3.next = 4;
+                                    return bufferSound(this._audioContext, this._XMLHttpRequest, src);
+
+                                case 4:
+                                    buffer = _context3.sent;
+
+                                    this.dispatchEvent('canplaythrough');
+                                    resolve(buffer);
+
+                                case 7:
+                                case "end":
+                                    return _context3.stop();
+                            }
+                        }
+                    }, _callee3, this);
+                }));
+            });
+        }
+        /**
          * Reject all deferreds for the Play promise.
          * @param reason
          */
@@ -358,45 +414,7 @@ var AudioPlayer = function (_EventTarget_1$defaul) {
             return this._src;
         },
         set: function set(src) {
-            var _this3 = this;
-
-            // Pause any currently playing audio
-            if (this._src) {
-                this.pause();
-            }
-            this._src = src;
-            this._bufferPromise = new Promise(function (resolve, reject) {
-                return __awaiter(_this3, void 0, void 0, /*#__PURE__*/regeneratorRuntime.mark(function _callee3() {
-                    var buffer;
-                    return regeneratorRuntime.wrap(function _callee3$(_context3) {
-                        while (1) {
-                            switch (_context3.prev = _context3.next) {
-                                case 0:
-                                    if (src) {
-                                        _context3.next = 2;
-                                        break;
-                                    }
-
-                                    return _context3.abrupt("return", this._createPlayDeferred().promise);
-
-                                case 2:
-                                    _context3.next = 4;
-                                    return bufferSound(this._audioContext, this._XMLHttpRequest, src);
-
-                                case 4:
-                                    buffer = _context3.sent;
-
-                                    this.dispatchEvent('canplaythrough');
-                                    resolve(buffer);
-
-                                case 7:
-                                case "end":
-                                    return _context3.stop();
-                            }
-                        }
-                    }, _callee3, this);
-                }));
-            });
+            this._load(src);
         }
     }, {
         key: "sinkId",
