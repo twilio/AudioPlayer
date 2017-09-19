@@ -4,8 +4,7 @@
   "description": "An HTMLAudioElement-like implementation that uses AudioContext to circumvent browser limitations.",
   "main": "./lib/index.js",
   "scripts": {
-    "add-builds": "git add lib es5",
-    "babel": "babel lib --out-dir es5",
+    "add-lib": "git add lib",
     "build": "npm run clean && tsc && copyfiles -u 1 src/*.js lib",
     "build-message": "echo Building...",
     "clean": "rimraf ./lib",
@@ -22,22 +21,14 @@
     "test",
     "build-message",
     "build",
-    "babel",
-    "add-builds"
+    "add-lib"
   ],
-  "babel": {
-    "presets": [
-      "es2015"
-    ]
-  },
   "author": "Ryan Rowland <rrowland@twilio.com>",
   "license": "BSD-3-Clause",
   "devDependencies": {
     "@types/mocha": "^2.2.41",
     "@types/node": "^7.0.14",
     "@types/sinon": "^2.3.3",
-    "babel-cli": "^6.26.0",
-    "babel-preset-es2015": "^6.24.1",
     "copyfiles": "^1.2.0",
     "mocha": "^3.4.1",
     "pre-commit": "^1.2.2",
@@ -47,8 +38,5 @@
     "tslint": "^5.1.0",
     "typescript": "^2.5.0"
   },
-  "dependencies": {
-    "babel-core": "^6.26.0",
-    "babel-polyfill": "^6.26.0"
-  }
+  "dependencies": { }
 }
