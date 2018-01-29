@@ -262,9 +262,7 @@ export default class AudioPlayer extends EventTarget {
     this._audioElement.srcObject = this._destination.stream;
     this._sinkId = sinkId;
 
-    if (!this.paused) {
-      this._gainNode.connect(this._destination);
-    }
+    this._gainNode.connect(this._destination);
   }
 
   /**

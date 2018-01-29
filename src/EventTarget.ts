@@ -1,5 +1,4 @@
 import { EventEmitter } from 'events';
-import { inherits } from 'util';
 
 export default class EventTarget {
   private _eventEmitter: EventEmitter = new EventEmitter();
