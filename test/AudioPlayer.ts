@@ -368,6 +368,12 @@ describe('AudioPlayer', function() {
             sinon.assert.calledTwice(audioContext.gainNodes[0].connect as SinonSpy);
           });
         });
+
+        it('should connect the gain node to the new destination if not already playing', () => {
+          return audioPlayer.setSinkId('foo').then(() => {
+            sinon.assert.calledTwice(audioContext.gainNodes[0].connect as SinonSpy);
+          });
+        });
       });
     });
 
