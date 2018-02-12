@@ -4,7 +4,6 @@
   "description": "An HTMLAudioElement-like implementation that uses AudioContext to circumvent browser limitations.",
   "main": "./lib/index.js",
   "scripts": {
-    "add-builds": "git add lib es5",
     "babel": "babel lib --out-dir es5",
     "build": "npm run clean && tsc && copyfiles -u 1 src/*.js lib",
     "build-message": "echo Building...",
@@ -22,8 +21,7 @@
     "test",
     "build-message",
     "build",
-    "babel",
-    "add-builds"
+    "babel"
   ],
   "babel": {
     "presets": [
@@ -41,6 +39,7 @@
     "copyfiles": "^1.2.0",
     "mocha": "^3.4.1",
     "pre-commit": "^1.2.2",
+    "release-tool": "^0.2.2",
     "rimraf": "^2.6.1",
     "sinon": "^3.2.1",
     "ts-node": "^3.1.0",
