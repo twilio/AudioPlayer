@@ -46,9 +46,5 @@
     "ts-node": "^3.1.0",
     "tslint": "^5.1.0",
     "typescript": "^2.5.0"
-  },
-  "dependencies": {
-    "babel-core": "^6.26.0",
-    "babel-polyfill": "^6.26.0"
   }
 }
