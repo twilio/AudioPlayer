@@ -1,0 +1,6 @@
+filter_secrets: false
+language: node_js
+node_js:
+  - 8
+
+script: npm run build:travis
