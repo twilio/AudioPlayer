@@ -1,9 +1,9 @@
 {
   "type": "JavaScript",
-  "travis": true,
-  "slug": "client/AudioPlayer",
+  "travis": "pro",
+  "slug": "twilio/AudioPlayer",
   "env": {
-    "GH_REF": "code.hq.twilio.com/client/AudioPlayer.git"
+    "GH_REF": "github.com/twilio/AudioPlayer.git"
   },
   "plans": {
     "release": {
@@ -15,7 +15,7 @@
         "node ./node_modules/.bin/release --bump ${CURRENT_VERSION} ${RELEASE_VERSION}",
         "git config user.name \"${GIT_USER_NAME}\"",
         "git config user.email \"${GIT_USER_EMAIL}\"",
-        "git rm -rf --ignore-unmatch dist",
+        "git rm -rf --ignore-unmatch lib es5",
         "npm run build",
         "git add package.json",
         "git add -f lib es5",
@@ -29,7 +29,7 @@
     "development": {
       "commands": [
         "node ./node_modules/.bin/release --bump ${RELEASE_VERSION} ${DEVELOPMENT_VERSION}",
-        "git rm -rf dist",
+        "git rm -rf lib es5",
         "npm run clean",
         "git add package.json",
         "git commit -m \"${DEVELOPMENT_VERSION}\"",
