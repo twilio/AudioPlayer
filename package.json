@@ -1,6 +1,6 @@
 {
   "name": "AudioPlayer",
-  "version": "1.0.0",
+  "version": "1.0.1-dev",
   "description": "An HTMLAudioElement-like implementation that uses AudioContext to circumvent browser limitations.",
   "main": "./es5/index.js",
   "scripts": {
