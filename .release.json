@@ -16,7 +16,7 @@
         "git config user.name \"${GIT_USER_NAME}\"",
         "git config user.email \"${GIT_USER_EMAIL}\"",
         "git rm -rf --ignore-unmatch lib es5",
-        "npm run build",
+        "npm run build:travis",
         "git add package.json",
         "git add -f lib es5",
         "git commit -m \"${RELEASE_VERSION}\"",
