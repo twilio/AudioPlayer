@@ -1,6 +1,6 @@
 {
   "type": "JavaScript",
-  "travis": "pro",
+  "travis": true,
   "slug": "twilio/AudioPlayer",
   "env": {
     "GH_REF": "github.com/twilio/AudioPlayer.git"
