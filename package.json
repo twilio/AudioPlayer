@@ -3,6 +3,14 @@
   "version": "1.0.3-dev",
   "description": "An HTMLAudioElement-like implementation that uses AudioContext to circumvent browser limitations.",
   "main": "./es5/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/twilio/AudioPlayer.git"
+  },
+  "keywords": [
+    "twilio",
+    "audioplayer"
+  ],
   "scripts": {
     "babel": "babel lib -d es5",
     "build": "npm run clean && tsc && copyfiles -u 1 src/*.js lib",
