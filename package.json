@@ -1,6 +1,6 @@
 {
   "name": "@twilio/audioplayer",
-  "version": "1.0.4-dev",
+  "version": "1.0.4",
   "description": "An HTMLAudioElement-like implementation that uses AudioContext to circumvent browser limitations.",
   "main": "./es5/index.js",
   "repository": {
