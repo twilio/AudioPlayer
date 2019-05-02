@@ -224,6 +224,9 @@ export default class AudioPlayer extends EventTarget {
     this._audioNode.start();
 
     if (this._audioElement.srcObject) {
+      this.addEventListener('ended', () => {
+        this._audioElement.srcObject = null;
+      });
       return this._audioElement.play();
     }
   }
@@ -250,7 +253,6 @@ export default class AudioPlayer extends EventTarget {
       this._destination = this._audioContext.destination;
       this._gainNode.connect(this._destination);
       this._sinkId = sinkId;
-
       return;
     }
 
