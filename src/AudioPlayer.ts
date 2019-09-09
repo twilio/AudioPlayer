@@ -4,6 +4,12 @@ import EventTarget from './EventTarget';
 import ChromeAudioContext, { ChromeHTMLAudioElement, MediaStreamAudioDestinationNode } from './ChromeAudioContext';
 
 /**
+ * HTMLMediaElement srcObject
+ * @private
+ */
+export type ISourceObject = any;
+
+/**
  * Options that may be passed to AudioPlayer for dependency injection.
  */
 export interface IAudioPlayerOptions {
@@ -120,6 +126,16 @@ export default class AudioPlayer extends EventTarget {
   }
 
   /**
+   * The srcObject of the HTMLMediaElement
+   */
+  get srcObject(): ISourceObject {
+    return this._audioElement.srcObject;
+  }
+  set srcObject(srcObject: ISourceObject) {
+    this._audioElement.srcObject = srcObject;
+  }
+
+  /**
    * The current sinkId of the device audio is being played through.
    */
   private _sinkId: string = 'default';
@@ -224,9 +240,6 @@ export default class AudioPlayer extends EventTarget {
     this._audioNode.start();
 
     if (this._audioElement.srcObject) {
-      this.addEventListener('ended', () => {
-        this._audioElement.srcObject = null;
-      });
       return this._audioElement.play();
     }
   }
