@@ -165,16 +165,6 @@ describe('AudioPlayer', function() {
         });
       });
 
-      it('should clear srcObject if a sinkId is set', () => {
-        audioPlayer.setSinkId('foo');
-
-        return audioPlayer.play().then(() => {
-          audioContext.audioNodes[0].dispatchEvent('ended');
-          assert.equal(AudioFactory.instances.length, 1);
-          assert.equal(AudioFactory.instances[0].srcObject, null);
-        });
-      });
-
       context('when already playing', () => {
         it('should not create another audio node', () => {
           audioPlayer.play();

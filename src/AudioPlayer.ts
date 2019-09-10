@@ -120,6 +120,16 @@ export default class AudioPlayer extends EventTarget {
   }
 
   /**
+   * The srcObject of the HTMLMediaElement
+   */
+  get srcObject(): MediaStream | MediaSource | Blob | undefined {
+    return this._audioElement.srcObject;
+  }
+  set srcObject(srcObject: MediaStream | MediaSource | Blob | undefined) {
+    this._audioElement.srcObject = srcObject;
+  }
+
+  /**
    * The current sinkId of the device audio is being played through.
    */
   private _sinkId: string = 'default';
@@ -224,9 +234,6 @@ export default class AudioPlayer extends EventTarget {
     this._audioNode.start();
 
     if (this._audioElement.srcObject) {
-      this.addEventListener('ended', () => {
-        this._audioElement.srcObject = null;
-      });
       return this._audioElement.play();
     }
   }
