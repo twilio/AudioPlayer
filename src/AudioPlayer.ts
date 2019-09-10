@@ -4,12 +4,6 @@ import EventTarget from './EventTarget';
 import ChromeAudioContext, { ChromeHTMLAudioElement, MediaStreamAudioDestinationNode } from './ChromeAudioContext';
 
 /**
- * HTMLMediaElement srcObject
- * @private
- */
-export type ISourceObject = any;
-
-/**
  * Options that may be passed to AudioPlayer for dependency injection.
  */
 export interface IAudioPlayerOptions {
@@ -128,10 +122,10 @@ export default class AudioPlayer extends EventTarget {
   /**
    * The srcObject of the HTMLMediaElement
    */
-  get srcObject(): ISourceObject {
+  get srcObject(): MediaStream | MediaSource | Blob | undefined {
     return this._audioElement.srcObject;
   }
-  set srcObject(srcObject: ISourceObject) {
+  set srcObject(srcObject: MediaStream | MediaSource | Blob | undefined) {
     this._audioElement.srcObject = srcObject;
   }
 
